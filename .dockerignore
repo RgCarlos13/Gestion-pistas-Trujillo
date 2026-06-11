@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+.git/
+.gitignore
+README.md
+*.user
+*.suo
+*.csproj.user
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
+App_Data/*.json
+!App_Data/.gitkeep

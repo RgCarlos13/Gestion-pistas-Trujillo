@@ -1,0 +1,273 @@
+@model GestionPistasWeb.Services.ReporteViewModel
+@{
+    ViewData["Title"] = "Reportes";
+
+    int pctBueno = Model.TotalTramos > 0 ? (Model.TramosPorEstado.Bueno * 100 / Model.TotalTramos) : 0;
+    int pctRegular = Model.TotalTramos > 0 ? (Model.TramosPorEstado.Regular * 100 / Model.TotalTramos) : 0;
+    int pctMalo = Model.TotalTramos > 0 ? (Model.TramosPorEstado.Malo * 100 / Model.TotalTramos) : 0;
+    int pctReparacion = Model.TotalTramos > 0 ? (Model.TramosPorEstado.EnReparacion * 100 / Model.TotalTramos) : 0;
+    int pctIntransitable = Model.TotalTramos > 0 ? (Model.TramosPorEstado.Intransitable * 100 / Model.TotalTramos) : 0;
+}
+
+<h1>Reportes de Pistas</h1>
+<p class="text-muted">Consulta el resumen de pistas registradas, busca reportes por código y revisa los cambios recientes del sistema.</p>
+<hr />
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["Mensaje"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Pistas registradas</h5>
+                <p class="display-6 mb-0">@Model.TotalTramos</p>
+                <small>Registros activos visibles para usuarios</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Buen estado</h5>
+                <p class="display-6 mb-0">@Model.TramosPorEstado.Bueno</p>
+                <small>Tramos reportados como transitables</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Mal estado</h5>
+                <p class="display-6 mb-0">@(Model.TramosPorEstado.Malo + Model.TramosPorEstado.Intransitable)</p>
+                <small>Tramos que requieren mayor cuidado al transitar</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Buscar reporte por código</h5></div>
+            <div class="card-body">
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label">Código del reporte</label>
+                        <input type="number" min="1" name="buscarId" class="form-control" value="@Model.IdBuscado" placeholder="Ej: 3" />
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                    </div>
+                    <input type="hidden" name="estadoCondicion" value="@Model.EstadoCondicionSeleccionado" />
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(Model.MensajeBusquedaId))
+                {
+                    <div class="alert @(Model.ResultadoBusquedaId == null ? "alert-warning" : "alert-success") mt-3 mb-0">
+                        @Model.MensajeBusquedaId
+                    </div>
+                }
+
+                @if (Model.ResultadoBusquedaId != null)
+                {
+                    <div class="card mt-3 border-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>Tramo #@Model.ResultadoBusquedaId.Id</strong><br />
+                                    <span>@Model.ResultadoBusquedaId.DireccionReferencia</span><br />
+                                    <small class="text-muted">@Model.ResultadoBusquedaId.Zona · @Model.ResultadoBusquedaId.FechaRegistro.ToString("dd/MM/yyyy")</small>
+                                </div>
+                                <span class="badge estado-@Model.ResultadoBusquedaId.Estado.ToString().ToLower()">@Model.ResultadoBusquedaId.Estado</span>
+                            </div>
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+                                <a asp-controller="Tramos" asp-action="Detalle" asp-route-id="@Model.ResultadoBusquedaId.Id" class="btn btn-sm btn-info">Ver / editar</a>
+                                <form asp-controller="Tramos" asp-action="Eliminar" asp-route-id="@Model.ResultadoBusquedaId.Id" method="post" onsubmit="return confirm('¿Eliminar el tramo #@Model.ResultadoBusquedaId.Id de los registros activos?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Buscar por estado</h5></div>
+            <div class="card-body">
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label">Estado de la pista</label>
+                        <select name="estadoCondicion" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="Bueno" selected='@(Model.EstadoCondicionSeleccionado == nameof(EstadoTramo.Bueno) ? "selected" : null)'>Bueno</option>
+                            <option value="Regular" selected='@(Model.EstadoCondicionSeleccionado == nameof(EstadoTramo.Regular) ? "selected" : null)'>Regular</option>
+                            <option value="Malo" selected='@(Model.EstadoCondicionSeleccionado == nameof(EstadoTramo.Malo) ? "selected" : null)'>Malo</option>
+                            <option value="EnReparacion" selected='@(Model.EstadoCondicionSeleccionado == nameof(EstadoTramo.EnReparacion) ? "selected" : null)'>En reparación</option>
+                            <option value="Intransitable" selected='@(Model.EstadoCondicionSeleccionado == nameof(EstadoTramo.Intransitable) ? "selected" : null)'>Intransitable</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+                    </div>
+                    @if (Model.IdBuscado.HasValue)
+                    {
+                        <input type="hidden" name="buscarId" value="@Model.IdBuscado" />
+                    }
+                </form>
+
+                @if (Model.ResultadosCondicion.Contar() == 0)
+                {
+                    <div class="alert alert-info mt-3 mb-0">No se encontraron registros con esa condición.</div>
+                }
+                else
+                {
+                    <div class="table-responsive mt-3" style="max-height: 260px; overflow-y: auto;">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>Código</th><th>Dirección</th><th>Estado</th><th></th></tr></thead>
+                            <tbody>
+                                @{
+                                    var nodoCondicion = Model.ResultadosCondicion.ObtenerCabeza();
+                                    while (nodoCondicion != null)
+                                    {
+                                        var tramoCondicion = nodoCondicion.Data;
+                                        <tr>
+                                            <td>#@tramoCondicion.Id</td>
+                                            <td>@tramoCondicion.DireccionReferencia</td>
+                                            <td><span class="badge estado-@tramoCondicion.Estado.ToString().ToLower()">@tramoCondicion.Estado</span></td>
+                                            <td><a asp-controller="Tramos" asp-action="Detalle" asp-route-id="@tramoCondicion.Id" class="btn btn-sm btn-outline-info">Ver</a></td>
+                                        </tr>
+                                        nodoCondicion = nodoCondicion.Siguiente;
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Tramos por estado</h5></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Estado</th><th>Cantidad</th><th>Indicador</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge estado-bueno">Bueno</span></td>
+                                <td>@Model.TramosPorEstado.Bueno</td>
+                                <td><div class="progress" style="height: 20px;"><div class="progress-bar bg-success" role="progressbar" style="width: @pctBueno%">@pctBueno%</div></div></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge estado-regular">Regular</span></td>
+                                <td>@Model.TramosPorEstado.Regular</td>
+                                <td><div class="progress" style="height: 20px;"><div class="progress-bar bg-warning" role="progressbar" style="width: @pctRegular%">@pctRegular%</div></div></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge estado-malo">Malo</span></td>
+                                <td>@Model.TramosPorEstado.Malo</td>
+                                <td><div class="progress" style="height: 20px;"><div class="progress-bar bg-danger" role="progressbar" style="width: @pctMalo%">@pctMalo%</div></div></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge estado-enreparacion">En reparación</span></td>
+                                <td>@Model.TramosPorEstado.EnReparacion</td>
+                                <td><div class="progress" style="height: 20px;"><div class="progress-bar bg-info" role="progressbar" style="width: @pctReparacion%">@pctReparacion%</div></div></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge estado-intransitable">Intransitable</span></td>
+                                <td>@Model.TramosPorEstado.Intransitable</td>
+                                <td><div class="progress" style="height: 20px;"><div class="progress-bar bg-dark" role="progressbar" style="width: @pctIntransitable%">@pctIntransitable%</div></div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Historial de cambios recientes</h5></div>
+            <div class="card-body">
+                @if (Model.UltimasAcciones.Contar() == 0)
+                {
+                    <p class="text-muted">No hay acciones registradas.</p>
+                }
+                else
+                {
+                    <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                        <table class="table table-sm">
+                            <tbody>
+                                @{
+                                    var nodoAccion = Model.UltimasAcciones.ObtenerCabeza();
+                                    while (nodoAccion != null)
+                                    {
+                                        <tr><td class="small">@nodoAccion.Data</td></tr>
+                                        nodoAccion = nodoAccion.Siguiente;
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Reportes ordenados por código</h5></div>
+    <div class="card-body">
+        @if (Model.TramosOrdenadosPorId.Contar() == 0)
+        {
+            <p class="text-muted">No hay registros activos.</p>
+        }
+        else
+        {
+            <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>Código</th><th>Dirección</th><th>Tipo de vía</th><th>Estado</th><th></th></tr></thead>
+                    <tbody>
+                        @{
+                            var nodoOrden = Model.TramosOrdenadosPorId.ObtenerCabeza();
+                            while (nodoOrden != null)
+                            {
+                                var tramoOrden = nodoOrden.Data;
+                                <tr>
+                                    <td>#@tramoOrden.Id</td>
+                                    <td>@tramoOrden.DireccionReferencia</td>
+                                    <td>@tramoOrden.TipoVia</td>
+                                    <td><span class="badge estado-@tramoOrden.Estado.ToString().ToLower()">@tramoOrden.Estado</span></td>
+                                    <td class="text-nowrap">
+                                        <a asp-controller="Tramos" asp-action="Detalle" asp-route-id="@tramoOrden.Id" class="btn btn-sm btn-outline-info">Ver / editar</a>
+                                    </td>
+                                </tr>
+                                nodoOrden = nodoOrden.Siguiente;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

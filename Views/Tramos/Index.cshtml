@@ -1,0 +1,138 @@
+@model GestionPistasWeb.ViewModels.TramosIndexViewModel
+@{
+    ViewData["Title"] = "Tramos Registrados";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="mb-1">Tramos Registrados</h1>
+        <p class="text-muted mb-0">Consulta registros del Centro Histórico, enfoca un tramo en el mapa y revisa evidencias.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form asp-action="DeshacerUltimo" method="post" onsubmit="return confirm('¿Deshacer el último tramo registrado?')">
+            <button type="submit" class="btn btn-outline-warning">Deshacer último</button>
+        </form>
+        <a asp-action="Crear" class="btn btn-primary">+ Nuevo Tramo</a>
+    </div>
+</div>
+
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["Mensaje"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Mapa general de reportes</h5>
+        <span class="text-muted small">Centro Histórico / Av. España</span>
+    </div>
+    <div class="card-body">
+        <div id="mapaGeneral" class="mapa-trujillo mapa-general"></div>
+        <div class="form-text mt-2">Área piloto: solo tramos dentro del Centro Histórico de Trujillo.</div>
+        <div class="leyenda-mapa mt-3">
+            <span><i class="leyenda-color bueno"></i>Bueno</span>
+            <span><i class="leyenda-color regular"></i>Regular</span>
+            <span><i class="leyenda-color malo"></i>Malo</span>
+            <span><i class="leyenda-color reparacion"></i>En reparación</span>
+            <span><i class="leyenda-color intransitable"></i>Intransitable</span>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filtros</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Bueno" selected='@(Model.EstadoSeleccionado == nameof(EstadoTramo.Bueno) ? "selected" : null)'>Bueno</option>
+                    <option value="Regular" selected='@(Model.EstadoSeleccionado == nameof(EstadoTramo.Regular) ? "selected" : null)'>Regular</option>
+                    <option value="Malo" selected='@(Model.EstadoSeleccionado == nameof(EstadoTramo.Malo) ? "selected" : null)'>Malo</option>
+                    <option value="EnReparacion" selected='@(Model.EstadoSeleccionado == nameof(EstadoTramo.EnReparacion) ? "selected" : null)'>En reparación</option>
+                    <option value="Intransitable" selected='@(Model.EstadoSeleccionado == nameof(EstadoTramo.Intransitable) ? "selected" : null)'>Intransitable</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a asp-action="Index" class="btn btn-secondary">Limpiar filtros</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.TotalTramos == 0)
+{
+    <div class="alert alert-info">
+        Aún no hay pistas registradas. <a asp-action="Crear">Registra el primer tramo desde el mapa</a>.
+    </div>
+}
+else
+{
+    <div class="row">
+        @{
+            var nodo = Model.Tramos.ObtenerCabeza();
+            while (nodo != null)
+            {
+                var tramo = nodo.Data;
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 tramo-card" id="tramo-card-@tramo.Id">
+                        @if (!string.IsNullOrWhiteSpace(tramo.RutaEvidencia))
+                        {
+                            <img src="@tramo.RutaEvidencia" class="card-img-top evidencia-miniatura" alt="Evidencia del tramo #@tramo.Id" />
+                        }
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <h5 class="card-title">Tramo #@tramo.Id</h5>
+                                <span class="badge estado-@tramo.Estado.ToString().ToLower()">@tramo.Estado</span>
+                            </div>
+                            <h6 class="card-subtitle mb-2 text-muted">Centro Histórico - @tramo.Zona</h6>
+                            <p class="card-text small">
+                                <strong>Dirección:</strong> @tramo.DireccionReferencia<br />
+                                <strong>Tipo vía:</strong> @tramo.TipoVia<br />
+                                <strong>Reportado por:</strong> @tramo.ReportadoPor<br />
+                                <strong>Fecha:</strong> @tramo.FechaRegistro.ToString("dd/MM/yyyy")
+                            </p>
+                        </div>
+                        <div class="card-footer d-flex flex-wrap gap-2 justify-content-between">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="TrujilloVialMapa.enfocarTramo(@tramo.Id)">Ver en mapa</button>
+                            <a asp-action="Detalle" asp-route-id="@tramo.Id" class="btn btn-sm btn-info">Detalle</a>
+                            <form asp-action="Eliminar" asp-route-id="@tramo.Id" method="post" onsubmit="return confirm('¿Eliminar tramo #@tramo.Id de los registros activos?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                nodo = nodo.Siguiente;
+            }
+        }
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/mapa-trujillo.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tramos = @Html.Raw(Model.TramosMapaJson);
+            TrujilloVialMapa.initIndex('mapaGeneral', tramos);
+        });
+    </script>
+}

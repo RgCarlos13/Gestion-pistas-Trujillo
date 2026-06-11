@@ -1,0 +1,155 @@
+@model GestionPistasWeb.Models.Tramo
+@{
+    ViewData["Title"] = "Registrar Nuevo Tramo";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-1">Registrar Nuevo Tramo</h1>
+        <p class="text-muted mb-0">Marca el inicio y fin únicamente sobre pistas o calles del Centro Histórico de Trujillo.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Ver registros</a>
+</div>
+
+<form asp-action="Crear" method="post" enctype="multipart/form-data" id="formCrearTramo">
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+    <span asp-validation-for="LatInicio" class="text-danger d-block mb-2"></span>
+
+    <input asp-for="LatInicio" type="hidden" id="LatInicio" />
+    <input asp-for="LngInicio" type="hidden" id="LngInicio" />
+    <input asp-for="LatFin" type="hidden" id="LatFin" />
+    <input asp-for="LngFin" type="hidden" id="LngFin" />
+    <input asp-for="RutaCoordenadas" type="hidden" id="RutaCoordenadas" />
+    <input asp-for="ZonaTrabajo" type="hidden" value="Centro Histórico de Trujillo" />
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Mapa del Centro Histórico de Trujillo</h5>
+                        <small class="text-muted">Solo se permite registrar sobre pistas dentro del anillo de Av. España.</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnLimpiarMapa">Limpiar tramo</button>
+                </div>
+                <div class="card-body">
+                    <div id="mapaCrear" class="mapa-trujillo mapa-crear"></div>
+                    <div class="map-helper mt-3">
+                        <span class="badge rounded-pill bg-primary" id="estadoSeleccionMapa">Paso 1</span>
+                        <span id="textoAyudaMapa">Selecciona el punto de inicio sobre una pista dentro del área marcada.</span>
+                    </div>
+                    <div class="leyenda-mapa mt-3">
+                        <span><i class="leyenda-color bueno"></i>Bueno</span>
+                        <span><i class="leyenda-color regular"></i>Regular</span>
+                        <span><i class="leyenda-color malo"></i>Malo</span>
+                        <span><i class="leyenda-color reparacion"></i>En reparación</span>
+                        <span><i class="leyenda-color intransitable"></i>Intransitable</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Datos del reporte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 mb-3">
+                        <strong>Zona de trabajo:</strong> Centro Histórico de Trujillo.
+                        <span class="d-block small">Proyecto piloto limitado al anillo de la Av. España.</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Zona" class="form-label">Sector dentro del centro</label>
+                        <input asp-for="Zona" class="form-control" placeholder="Ej: Plaza de Armas, Jr. Pizarro, Av. España" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DireccionReferencia" class="form-label">Dirección o Referencia *</label>
+                        <input asp-for="DireccionReferencia" class="form-control" placeholder="Ej: Jr. Pizarro cuadra 5" />
+                        <span asp-validation-for="DireccionReferencia" class="text-danger"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="TipoVia" class="form-label">Tipo de Vía</label>
+                            <select asp-for="TipoVia" class="form-select">
+                                <option value="">Seleccione...</option>
+                                <option value="Avenida">Avenida</option>
+                                <option value="Calle">Calle</option>
+                                <option value="Jirón">Jirón</option>
+                                <option value="Pasaje">Pasaje</option>
+                                <option value="Alameda">Alameda</option>
+                                <option value="Óvalo">Óvalo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Estado" class="form-label">Estado *</label>
+                            <select asp-for="Estado" class="form-select" id="Estado">
+                                <option value="">Seleccione...</option>
+                                <option value="Bueno">Bueno</option>
+                                <option value="Regular">Regular</option>
+                                <option value="Malo">Malo</option>
+                                <option value="EnReparacion">En reparación</option>
+                                <option value="Intransitable">Intransitable</option>
+                            </select>
+                            <span asp-validation-for="Estado" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Descripcion" class="form-label">Descripción *</label>
+                        <textarea asp-for="Descripcion" class="form-control" rows="3" placeholder="Describe baches, huecos, desgaste o bloqueo."></textarea>
+                        <span asp-validation-for="Descripcion" class="text-danger"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="ReportadoPor" class="form-label">Reportado Por *</label>
+                            <input asp-for="ReportadoPor" class="form-control" placeholder="Tu nombre o usuario" />
+                            <span asp-validation-for="ReportadoPor" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Evidencia</label>
+                            <input type="file" name="evidencia" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                            <div class="form-text">JPG, PNG o WEBP. Máximo 5 MB.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Registrar Tramo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/mapa-trujillo.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            TrujilloVialMapa.initCrear('mapaCrear', {
+                estadoSelectId: 'Estado',
+                btnLimpiarId: 'btnLimpiarMapa',
+                ayudaId: 'textoAyudaMapa',
+                pasoId: 'estadoSeleccionMapa',
+                inputs: {
+                    latInicio: 'LatInicio',
+                    lngInicio: 'LngInicio',
+                    latFin: 'LatFin',
+                    lngFin: 'LngFin',
+                    ruta: 'RutaCoordenadas'
+                }
+            });
+        });
+    </script>
+}
